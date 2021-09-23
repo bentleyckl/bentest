@@ -1,0 +1,50 @@
+pipeline {
+  environment {
+    registry = "https://github.com/bentleyckl/bentest.git"
+    PROJECT = "bentleyckl"
+    ENVRMNT = "bentest"
+	JBOSS_VER = "eap72"
+    APP_FUNCTION = "app"
+    NAMESPACE = "bentleyckl-bentest"
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git url: 'https://github.com/bentleyckl/bentest.git'
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build(registry + "/$PROJECT-$ENVRMNT-jbosseap72:$BUILD_NUMBER")
+        }
+      }
+    }
+    stage('Push Image') {
+      steps{
+        script {
+          docker.withRegistry( 'https://github.com/bentleyckl/bentest.git', registryCredential ) {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+    stage('Deploy App') {
+      steps {
+        script {
+          kubernetesDeploy(configs: "deployment.yaml", kubeconfigId: "svc-deployment-kube-config")
+        }
+      }
+    }
+    stage('Clean workspace and build images') {
+      steps {
+         script { 
+           sh "docker rmi $registry/$PROJECT-$ENVRMNT-jbosseap72:$BUILD_NUMBER -f"
+           cleanWs disableDeferredWipeout: true, deleteDirs: true
+         }
+         
+        }
+    }
+  }
+}
