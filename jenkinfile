@@ -1,4 +1,4 @@
-pipeline {
+yypipeline {
   environment {
     registry = "https://github.com/bentleyckl/bentest.git"
     PROJECT = "bentleyckl"
